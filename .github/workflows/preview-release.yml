@@ -1,0 +1,35 @@
+name: Publish v0.1.0 preview
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/preview-release.yml]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: matebook-preview-release
+jobs:
+  release:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Check and package public files
+        run: |
+          for file in scripts/*.sh; do bash -n "$file"; done
+          python3 -m py_compile scripts/*.py
+          bash scripts/matebook-speaker-fix.sh --help
+          git ls-files -z README.md docs scripts config |
+            tar --null -T - -czf matebook-usb4-speaker-fix-v0.1.0-preview.tar.gz
+          sha256sum matebook-usb4-speaker-fix-v0.1.0-preview.tar.gz > SHA256SUMS
+      - name: Publish prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag=v0.1.0-preview
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            exit 0
+          fi
+          gh release create "$tag" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "MateBook 14s 2023 USB4 扬声器修复 · v0.1.0 预览" --prerelease \
+            --notes-file docs/release-notes.md matebook-usb4-speaker-fix-v0.1.0-preview.tar.gz SHA256SUMS

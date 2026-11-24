@@ -1,0 +1,14 @@
+[Unit]
+Description=Keep MateBook 14s internal speakers ready
+After=wireplumber.service
+PartOf=wireplumber.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 -u %h/.local/libexec/matebook-usb4-speaker.py watch
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+
+[Install]
+WantedBy=wireplumber.service
